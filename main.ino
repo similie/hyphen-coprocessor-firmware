@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include "wire-manager.h"
 #include "file-manager.h"
+#include "sdi-12.h"
 
 #define CONSOLE_BAUD 115200
 #define DEBUG_MODE true
@@ -23,7 +24,10 @@ void setup() {
 }
 
 
-
+/**
+* pushOpperation
+* push a record onto a file
+*/
 void pushOpperation() {
   bool ok = file.push(wire.getBuffer(), wire.bufferLength());
   wire.setResponseMessage(ok ? "ok" : "!!ERROR::FAILED_TO_PUSH_FILE!!");
@@ -32,7 +36,7 @@ void pushOpperation() {
 /**
  * pop
  * 
- * Used to pop a 
+ * Used to pop a record off the file
  * 
  * 
  * @return void
@@ -63,6 +67,10 @@ void logFile() {
   wire.setResponseMessage(ok ? "ok" : "!!ERROR::FAILED_TO_LOG_TO_FILE!!");
 }
 
+/**
+* processesSID12CMD
+* runs the SDI-12 Command
+*/
 void processesSID12CMD() {
   WireManager::setStagged(sdi.cmd(wire.receiveCmd(), wire.getBuffer()));
 }
@@ -94,9 +102,9 @@ void processSerialCommand() {
     processesSID12CMD();
   } else if (cmd.startsWith("reset_wire")) {
     wire.reset();
-  }else {
-    log("Unknown Command ");
-    logln(cmd);
+  } else {
+    Serial.print("Unknown Command ");
+    Serial.println(cmd);
   }
   wire.clearCMD();
 }
@@ -109,46 +117,4 @@ void processSerialCommand() {
 void loop() {
   processSerialCommand();
   file.loop();
-}
-
-
-/*
- * Logging templates that can be toggled on and off
- * for debugging
- * 
- */
-template<class T>
-void logln(T param) {
-  if (DEBUG_MODE == false) {
-    return;
-  }
-  String logString = String(param);
-  Serial.println(logString);
-}
-template<class T>
-void log(T param) {
-
-  if (DEBUG_MODE == false) {
-    return;
-  }
-  String logString = String(param);
-  Serial.print(logString);
-}
-
-void log(String param) {
-
-  if (DEBUG_MODE == false) {
-    return;
-  }
-
-  Serial.print(param);
-}
-
-void log(char param) {
-
-  if (DEBUG_MODE == false) {
-    return;
-  }
-
-  Serial.print(param);
 }
