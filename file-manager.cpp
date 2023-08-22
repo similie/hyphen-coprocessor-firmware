@@ -151,13 +151,6 @@ String FileManager::getPopIndex(size_t index) {
   return String("pop ") + String(index) + String(" ");
 }
 
-
-
-// void FileManager::flushAndClose(File* myFile) {
-//   myFile->flush();
-//   myFile->close();
-// }
-
 bool FileManager::writeToFile(const char* file, char * buffer, unsigned long size) {
  if (!hasFile) {
     return hasFile;
@@ -180,7 +173,6 @@ bool FileManager::writeToFile(const char* file, char * buffer, unsigned long siz
     Serial.print(c);
   }
   myFile.close();
-  // flushAndClose(&myFile);
   return hasFile;
 }
 

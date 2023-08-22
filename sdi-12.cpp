@@ -10,13 +10,11 @@ SDI12Controller::SDI12Controller(int pin) {
 
 void SDI12Controller::init() {
   mySDI12.begin();
-  //  mySDI12.forceListen()
   mySDI12.setDataPin(pin);
   if (PIN_LOW_REQURED && IS_CONNECTED_PIN) {
     pinMode(IS_CONNECTED_PIN, INPUT_PULLUP);
   }
 }
-
 
 bool SDI12Controller::untilAvailable(unsigned long timeout) {
   // return true;
@@ -49,12 +47,8 @@ unsigned long SDI12Controller::getSDIString(char * buffer) {
   if (returnlength < EXPECTED_MIN_LENGTH) {
     return 0;
   }
-  Serial.print("MY BUFFER SIZE ");
-  Serial.println(returnlength);
   return returnlength;
 }
-
-
 
 String SDI12Controller::stripNewLine(String cmd) {
   if (!cmd.endsWith("\n")) {
@@ -87,19 +81,12 @@ bool SDI12Controller::isConnected() {
   return digitalRead(IS_CONNECTED_PIN) == LOW;
 }
 
-
-
 unsigned long SDI12Controller::cmd(String cmd, char * buffer) {
   if (!isConnected()) {
     return "";
   }
 
   String thisCmd = stripNewLine(cmd);
-  // Serial.print("SENDING CMD ");
-  // Serial.print(thisCmd);
-  // Serial.print(" ");
-  // Serial.print(cmd);
-  // vlidate command
   if (thisCmd.equals("")) {
     return;
   }
@@ -110,5 +97,3 @@ unsigned long SDI12Controller::cmd(String cmd, char * buffer) {
   mySDI12.sendCommand(thisCmd);
   return getSDIString(buffer);
 }
-
-//mySDI12.sendCommand(cmd);

@@ -25,7 +25,6 @@ private:
   unsigned long getLineCount(char*);
   void appendToBuffer(char*);
   String getPopIndex(size_t);
-  // void flushAndClose(File *myFile);
   int getPopSize(String ourReading);
   bool writeToFile(const char*, char*, unsigned long);
 public:

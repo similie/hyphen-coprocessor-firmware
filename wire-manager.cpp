@@ -69,10 +69,6 @@ String WireManager::buildPrinterValues() {
   for (uint16_t i = setIndex; i < getTotalStringLength(endIndex); i++) {
     char c = cmdBuffer[i];
     printer += String(c);
-    Serial.print(i);
-    Serial.print(" ");
-    Serial.print((int)c);
-    Serial.print(" ");
   }
   if (endIndex == -1) {
     clearStagged();
@@ -86,9 +82,9 @@ void WireManager::requestEvent() {
   }
   String printer = buildPrinterValues();
   Wire.print(printer);
-  Serial.println("\n----");
-  Serial.print(printer);
-  Serial.println("\n_____");
+  // Serial.println("\n----");
+  // Serial.print(printer);
+  // Serial.println("\n_____");
 }
 
 void WireManager::init() {
@@ -150,7 +146,7 @@ String WireManager::receiveCmd() {
 void WireManager::printBuffer() {
   uint16_t i = 0;
   char c = cmdBuffer[i];
-  Serial.println("PRINTING BUFFER");
+  Serial.println("\nPRINTING BUFFER");
   while (c != '\0') {
     Serial.print(c);
     i++;
@@ -167,15 +163,12 @@ void WireManager::setResponseMessage(String message) {
   if (!message.endsWith("\n")) {
     message += "\n";
   }
-  Serial.println("SETTING THE STAGE");
   for (uint16_t i = 0; i < message.length(); i++) {
     char c = message.charAt(i);
     cmdBuffer[i] = c;
   }
   cmdBuffer[message.length()] = '\0';
   WireManager::setStagged(message.length());
-  Serial.print("ENDING STATE ");
-  Serial.println(message.length());
 }
 
 void WireManager::clearCMD() {

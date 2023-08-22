@@ -14,7 +14,6 @@ class SDI12Controller {
 private:
   int pin = -1;
   SDI12 mySDI12;
-  // const String[] availableCmds = {"xR0!"};
   String stripNewLine(String);
   unsigned long returnlength = 0;
   bool untilAvailable(unsigned long);
