@@ -43,6 +43,7 @@ public:
   void clearCMD();
   void setResponseMessage(String);
   void reset();
+  static void zeroOutBuffer();
 };
 
 

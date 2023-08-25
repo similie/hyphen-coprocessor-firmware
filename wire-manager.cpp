@@ -82,9 +82,9 @@ void WireManager::requestEvent() {
   }
   String printer = buildPrinterValues();
   Wire.print(printer);
-  // Serial.println("\n----");
-  // Serial.print(printer);
-  // Serial.println("\n_____");
+  Serial.println("\n----");
+  Serial.print(printer);
+  Serial.println("\n_____");
 }
 
 void WireManager::init() {
@@ -107,6 +107,7 @@ void WireManager::setStagged(unsigned long staggedValue) {
 }
 
 void WireManager::clearStagged() {
+  WireManager::zeroOutBuffer();
   setStagged(0);
 }
 
@@ -139,8 +140,9 @@ String WireManager::receiveCmd() {
   if (!bufferReady) {
     return "";
   }
+  String send = String(cmdBuffer);
   clearCMD();
-  return String(cmdBuffer);
+  return send;
 }
 
 void WireManager::printBuffer() {
@@ -160,6 +162,7 @@ void WireManager::printBuffer() {
 
 void WireManager::setResponseMessage(String message) {
   clearCMD();
+  WireManager::zeroOutBuffer();
   if (!message.endsWith("\n")) {
     message += "\n";
   }
@@ -175,4 +178,9 @@ void WireManager::clearCMD() {
   bufferReady = false;
   cmdBufferIndex = 0;
   index = 0;
+  //WireManager::zeroOutBuffer();
+}
+
+void WireManager::zeroOutBuffer() {
+ memset(cmdBuffer, 0, sizeof(cmdBuffer));
 }

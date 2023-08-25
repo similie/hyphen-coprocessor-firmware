@@ -19,6 +19,8 @@ private:
   bool untilAvailable(unsigned long);
   unsigned long getSDIString(char*);
   String parseSpaceCmd(String);
+  void reset();
+  void setup();
 public:
   SDI12Controller();
   SDI12Controller(int);

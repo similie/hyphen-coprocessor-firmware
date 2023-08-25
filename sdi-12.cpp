@@ -8,12 +8,26 @@ SDI12Controller::SDI12Controller(int pin) {
   this->pin = pin;
 }
 
-void SDI12Controller::init() {
+
+void SDI12Controller::setup() {
   mySDI12.begin();
   mySDI12.setDataPin(pin);
+}
+
+void SDI12Controller::init() {
+  setup();
   if (PIN_LOW_REQURED && IS_CONNECTED_PIN) {
-    pinMode(IS_CONNECTED_PIN, INPUT_PULLUP);
+    pinMode(IS_CONNECTED_PIN, INPUT);
   }
+}
+
+void SDI12Controller::reset() {
+  Serial.println("RESETTING");
+  mySDI12.end();
+  delay(200);
+  init();
+  delay(200);
+  setup();
 }
 
 bool SDI12Controller::untilAvailable(unsigned long timeout) {
@@ -27,13 +41,19 @@ bool SDI12Controller::untilAvailable(unsigned long timeout) {
   delay(50);
   Serial.print("AVAILABLE ");
   Serial.println(mySDI12.available());
+  if (mySDI12.available() == -1) {
+    reset();
+  }
+
   available = mySDI12.available() > EXPECTED_MIN_LENGTH;
   return available;
 }
 
-unsigned long SDI12Controller::getSDIString(char * buffer) {
+unsigned long SDI12Controller::getSDIString(char* buffer) {
   returnlength = 0;
   if (!untilAvailable(1000)) {
+    Serial.println("CLEARING BUFFER FAILED TO GET SDI VALUES");
+    mySDI12.clearBuffer();
     return returnlength;
   }
   while (mySDI12.available()) {
@@ -81,12 +101,15 @@ bool SDI12Controller::isConnected() {
   return digitalRead(IS_CONNECTED_PIN) == LOW;
 }
 
-unsigned long SDI12Controller::cmd(String cmd, char * buffer) {
+unsigned long SDI12Controller::cmd(String cmd, char* buffer) {
   if (!isConnected()) {
+    Serial.println("DEVICE DISCONNECTED");
     return "";
   }
 
   String thisCmd = stripNewLine(cmd);
+  Serial.print("SENDING COMMAND ");
+  Serial.println(thisCmd);
   if (thisCmd.equals("")) {
     return;
   }
