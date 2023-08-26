@@ -20,11 +20,12 @@ private:
   unsigned long getSDIString(char*);
   String parseSpaceCmd(String);
   void reset();
-  void setup();
 public:
   SDI12Controller();
   SDI12Controller(int);
   void init();
+  void end();
+  void setup();
   bool isConnected();
   unsigned long cmd(String cmd, char*);
   bool logExternal(String cmd);

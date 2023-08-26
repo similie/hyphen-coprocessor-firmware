@@ -15,15 +15,19 @@ void SDI12Controller::setup() {
 }
 
 void SDI12Controller::init() {
-  setup();
+  // setup();
   if (PIN_LOW_REQURED && IS_CONNECTED_PIN) {
     pinMode(IS_CONNECTED_PIN, INPUT);
   }
 }
 
+void SDI12Controller::end() {
+  mySDI12.end();
+}
+
 void SDI12Controller::reset() {
   Serial.println("RESETTING");
-  mySDI12.end();
+  end();
   delay(200);
   init();
   delay(200);
@@ -106,7 +110,7 @@ unsigned long SDI12Controller::cmd(String cmd, char* buffer) {
     Serial.println("DEVICE DISCONNECTED");
     return "";
   }
-
+  Serial.println("FUCK YOU", cmd);
   String thisCmd = stripNewLine(cmd);
   Serial.print("SENDING COMMAND ");
   Serial.println(thisCmd);

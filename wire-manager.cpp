@@ -141,7 +141,9 @@ String WireManager::receiveCmd() {
     return "";
   }
   String send = String(cmdBuffer);
+  Serial.print("ATTACK VECTOR ");Serial.println(send);
   clearCMD();
+  WireManager::zeroOutBuffer();
   return send;
 }
 
@@ -182,5 +184,5 @@ void WireManager::clearCMD() {
 }
 
 void WireManager::zeroOutBuffer() {
- memset(cmdBuffer, 0, sizeof(cmdBuffer));
+  memset(cmdBuffer, 0, sizeof(cmdBuffer));
 }

@@ -3,15 +3,23 @@
 #include "wire-manager.h"
 #include "file-manager.h"
 #include "sdi-12.h"
+//  #include "rs-485.h"
+
+
+#define DEBUG true
 
 #define CONSOLE_BAUD 115200
 #define DEBUG_MODE true
 // #define PROCESSOR_TYPE "MO_SAMD_21G18"
 #define PROCESSOR_TYPE "FW_32u4"
 
+unsigned long awaitTimer = 0;
+const unsigned long LOG_OUT = 60000;
+
 WireManager wire;
 SDI12Controller sdi;
 FileManager file;
+// RS485Manager rs485;
 /*
  * Startup functions
  */
@@ -19,6 +27,8 @@ void setup() {
   Serial.begin(CONSOLE_BAUD);
   wire.begin();
   sdi.init();
+  sdi.setup();
+  // rs485.begin();
   // debug delay to salvage the chip
   delay(2000);
 }
@@ -72,7 +82,21 @@ void logFile() {
 * runs the SDI-12 Command
 */
 void processesSID12CMD() {
+  // sdi.setup();
+  // delay(200);
   WireManager::setStagged(sdi.cmd(wire.receiveCmd(), wire.getBuffer()));
+  // sdi.end();
+}
+
+void process485() {
+//  int address = rs485.stripAddress(wire.receiveCmd());
+//  Serial.print("MY ADDRESS ");Serial.println(address);
+//  unsigned long size = rs485.process(address, wire.getBuffer());
+//  Serial.print("MY SIZE ");Serial.println(size);
+//  if (!size) {
+//     return wire.setResponseMessage("!!ERROR::FAILED_TO_PULL_RS485_DATA!!");
+//  }
+//  WireManager::setStagged(size);
 }
 
 
@@ -82,7 +106,7 @@ void processesSID12CMD() {
  * @param SDIReadEvent * eventt - contains the event data
  * @return void
  */
-void processSerialCommand() {
+void processCommand() {
   String cmd = wire.peakCommand();
   if (cmd.equals("")) {
     return;
@@ -94,12 +118,14 @@ void processSerialCommand() {
     pushOpperation();
   } else if (cmd.startsWith("log")) {
     logFile();
+  } else if (cmd.startsWith("rs485")) {
+    process485();
   } else if (cmd.startsWith("request")) {
+    processesSID12CMD();
+  } else if (cmd.startsWith("0R")) {
     processesSID12CMD();
   } else if (cmd.startsWith("ping")) {
     pong();
-  } else if (cmd.startsWith("0R")) {
-    processesSID12CMD();
   } else if (cmd.startsWith("reset_wire")) {
     wire.reset();
   } else {
@@ -115,6 +141,15 @@ void processSerialCommand() {
  * @return void
  */
 void loop() {
-  processSerialCommand();
+  processCommand();
   file.loop();
+
+#ifdef DEBUG
+  // for debugging
+  if (millis() - awaitTimer < LOG_OUT) {
+    return;
+  }
+  awaitTimer = millis();
+  Serial.println("I'm Alive");
+#endif
 }
