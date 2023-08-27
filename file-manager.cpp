@@ -133,23 +133,23 @@ int FileManager::getPopSize(String ourReading)
  */
 unsigned long FileManager::pop(char * buffer) {
   if (!hasFile) {
-    return "";
+    return 0;
   }
   unsigned long bufferSize = getLineCount(buffer);
   return bufferSize;
 }
 
 
-/**
- * getPopIndex - appends the popped data with with the pop identity
- * and it's corresponding index
- * 
- * @param size_t index - the index of the line being returned
- * @return String - the concatenated string that contains the index
- */
-String FileManager::getPopIndex(size_t index) {
-  return String("pop ") + String(index) + String(" ");
-}
+// /**
+//  * getPopIndex - appends the popped data with with the pop identity
+//  * and it's corresponding index
+//  * 
+//  * @param size_t index - the index of the line being returned
+//  * @return String - the concatenated string that contains the index
+//  */
+// String FileManager::getPopIndex(size_t index) {
+//   return String("pop ") + String(index) + String(" ");
+// }
 
 bool FileManager::writeToFile(const char* file, char * buffer, unsigned long size) {
  if (!hasFile) {

@@ -1,17 +1,21 @@
 #include "wire-manager.h"
 
-WireManager::WireManager() {}
+
+
+WireManager::WireManager() {
+
+}
 
 WireManager::WireManager(uint8_t address) {
   this->address = address;
 }
 
 int WireManager::getIndex() {
-  if (index > staggedReady) {
-    index = 0;
+  if (_index > staggedReady) {
+    _index = 0;
     return -1;
   }
-  return index++;
+  return _index++;
 }
 
 void WireManager::reset() {
@@ -44,46 +48,72 @@ int WireManager::getEndIndex(int startIndex) {
   return setIndex;
 }
 
+// bool WireManager::readyBuffer() {
+
+//   if (!bufferReady) {
+//     return bufferReady;
+//   }
+//   Serial.print("\n_+__+____");
+//   Serial.println( millis() - bufferReadySet > BUFFER_READY_FAILED);
+//   if ( millis() - bufferReadySet > BUFFER_READY_FAILED) {
+//     Serial.println("MY READY BUFFER WAS VIOLATED");
+//     bufferReady = false;
+//     cmdBufferIndex = 0;
+//   }
+//   return bufferReady;
+// }
+
 void WireManager::receiveEvent(int byteCount) {
+  // Serial.print("I JUST GOT RECEIVED ");Serial.println(byteCount);
   if (bufferReady) {
     return;
   }
   if (cmdBufferIndex + byteCount > CMD_BUFFER_LENGTH) {
     cmdBufferIndex = 0;
   }
-  for (uint16_t i = 0; i < byteCount; i++) {
+
+  uint16_t i = 0;
+  while(Wire.available() && i < byteCount) {
     char c = Wire.read();
     cmdBuffer[cmdBufferIndex] = c;
     cmdBufferIndex++;
-    if (c == '\n') {
+    // Serial.print(c);
+    if (c == '\n' || c == '\0' || c == '\r') {
       bufferReady = true;
+      // bufferReadySet = millis();
+      // Serial.println("---");
     }
+    i++;
   }
   cmdBuffer[cmdBufferIndex] = '\0';
 }
 
-String WireManager::buildPrinterValues() {
-  String printer = "";
+size_t WireManager::buildPrinterValues(char * sendBuffer) {
   int setIndex = getIndex();
   int endIndex = getEndIndex(setIndex);
+  size_t localIndex = 0;
   for (uint16_t i = setIndex; i < getTotalStringLength(endIndex); i++) {
     char c = cmdBuffer[i];
-    printer += String(c);
+    sendBuffer[localIndex] = c;
+    localIndex++;
   }
+  sendBuffer[localIndex] = '\0';
   if (endIndex == -1) {
     clearStagged();
   }
-  return printer;
+  return localIndex;
 }
 
 void WireManager::requestEvent() {
   if (staggedReady == 0) {
     return sendFailedWire();
   }
-  String printer = buildPrinterValues();
+  char printer[WIRE_BUFFER_SIZE + 1];
+  buildPrinterValues(printer);
+  Serial.print("MY VALUES ARE HERE ");Serial.println(printer);
   Wire.print(printer);
   Serial.println("\n----");
-  Serial.print(printer);
+  Serial.print(String(printer));
   Serial.println("\n_____");
 }
 
@@ -102,7 +132,7 @@ void WireManager::end() {
 }
 
 void WireManager::setStagged(unsigned long staggedValue) {
-  index = 0;
+  _index = 0;
   staggedReady = staggedValue;
 }
 
@@ -111,21 +141,26 @@ void WireManager::clearStagged() {
   setStagged(0);
 }
 
-String WireManager::peakCommand() {
+uint8_t WireManager::peakCommand(char* buffer, uint8_t bufferSize) {
   if (!bufferReady) {
-    return "";
+    return 0;
   }
   uint16_t index = 0;
-  String cmd = "";
-  while (index < CMD_BUFFER_LENGTH) {
+  uint8_t bufferIndex = 0;
+  while (index < bufferSize) {
     char c = cmdBuffer[index];
+    index++;
     if (c == ' ' || c == '\n' || c == '\0' || c == 13) {
       break;
     }
-    cmd += String(c);
-    index++;
+    buffer[bufferIndex] = c;
+    bufferIndex++;
+    if (bufferIndex >= bufferSize - 1) {
+      break;
+    }
   }
-  return cmd;
+  buffer[bufferIndex] = '\0';
+  return bufferIndex;
 }
 
 char* WireManager::getBuffer() {
@@ -134,17 +169,6 @@ char* WireManager::getBuffer() {
 
 unsigned long WireManager::bufferLength() {
   return cmdBufferIndex;
-}
-
-String WireManager::receiveCmd() {
-  if (!bufferReady) {
-    return "";
-  }
-  String send = String(cmdBuffer);
-  Serial.print("ATTACK VECTOR ");Serial.println(send);
-  clearCMD();
-  WireManager::zeroOutBuffer();
-  return send;
 }
 
 void WireManager::printBuffer() {
@@ -163,26 +187,42 @@ void WireManager::printBuffer() {
 }
 
 void WireManager::setResponseMessage(String message) {
+  setResponseMessage(message.c_str());
+}
+
+void WireManager::setResponseMessage(const char* message) {
   clearCMD();
-  WireManager::zeroOutBuffer();
-  if (!message.endsWith("\n")) {
-    message += "\n";
-  }
-  for (uint16_t i = 0; i < message.length(); i++) {
-    char c = message.charAt(i);
+  WireManager::zeroOutBuffer(); 
+  size_t length = strlen(message);
+  bool append = message[length - 1] != '\n';
+  Serial.print("APPENDING ");Serial.println(append);
+  uint16_t i = 0;
+  for (i; i < length; i++) {
+    char c = message[i];
     cmdBuffer[i] = c;
   }
-  cmdBuffer[message.length()] = '\0';
-  WireManager::setStagged(message.length());
+  if (append) {
+   cmdBuffer[i] = '\n';
+   i++;
+  }
+  cmdBuffer[i] = '\0';
+  Serial.print("WHYYYYY ");
+  Serial.print(length);
+  Serial.print(" ");
+  Serial.println(i);
+  WireManager::setStagged(i);
 }
 
 void WireManager::clearCMD() {
   bufferReady = false;
   cmdBufferIndex = 0;
-  index = 0;
+  _index = 0;
   //WireManager::zeroOutBuffer();
 }
 
 void WireManager::zeroOutBuffer() {
-  memset(cmdBuffer, 0, sizeof(cmdBuffer));
+  // memset(cmdBuffer, 0, sizeof(cmdBuffer));
+  for (uint16_t i = 0; i < CMD_BUFFER_LENGTH; i++) {
+    cmdBuffer[i] = '\0';
+  }
 }

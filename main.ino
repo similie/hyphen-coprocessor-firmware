@@ -1,46 +1,72 @@
+// #define NO_RS485 true
+// #define NO_WEATHER true
+#define NO_FILE_STORAGE true
 
-#include <Arduino.h>
 #include "wire-manager.h"
+#ifndef NO_FILE_STORAGE
 #include "file-manager.h"
+#endif
+#ifndef NO_WEATHER
 #include "sdi-12.h"
-//  #include "rs-485.h"
+#endif
+#ifndef NO_RS485
+#include "rs-485.h"
+#endif
+
+#include "utils.h"
+
+// #define DEBUG true
 
 
-#define DEBUG true
 
 #define CONSOLE_BAUD 115200
-#define DEBUG_MODE true
 // #define PROCESSOR_TYPE "MO_SAMD_21G18"
 #define PROCESSOR_TYPE "FW_32u4"
+#define DEFAULT_SERIAL_RS845_PORT 9600
+#define INVALID_DEVICE 0
 
+#ifdef DEBUG
 unsigned long awaitTimer = 0;
-const unsigned long LOG_OUT = 60000;
+const unsigned int LOG_OUT = 60000;
+#endif
+
+const uint8_t SEND_BUFFER_SIZE = 16;
+char sentCommandsBuffer[SEND_BUFFER_SIZE];
 
 WireManager wire;
+#ifndef NO_WEATHER
 SDI12Controller sdi;
+#endif
+#ifndef NO_FILE_STORAGE
 FileManager file;
-// RS485Manager rs485;
+#endif
+#ifndef NO_RS485
+RS485Manager rs485; 
+#endif
 /*
  * Startup functions
  */
 void setup() {
   Serial.begin(CONSOLE_BAUD);
   wire.begin();
+#ifndef NO_RS485
+  rs485.begin();
+#endif
+#ifndef NO_WEATHER
   sdi.init();
-  sdi.setup();
-  // rs485.begin();
+#endif
   // debug delay to salvage the chip
   delay(2000);
 }
 
-
+#ifndef NO_FILE_STORAGE
 /**
 * pushOpperation
 * push a record onto a file
 */
 void pushOpperation() {
   bool ok = file.push(wire.getBuffer(), wire.bufferLength());
-  wire.setResponseMessage(ok ? "ok" : "!!ERROR::FAILED_TO_PUSH_FILE!!");
+  wire.setResponseMessage(ok ? "ok" : "!!ERROR::FAILED_PUSH_FILE!!");
 }
 
 /**
@@ -55,10 +81,17 @@ void pop() {
   wire.clearCMD();
   unsigned long size = file.pop(wire.getBuffer());
   if (!size) {
-    return wire.setResponseMessage("!!ERROR::FAILED_TO_POP_FILE!!");
+    return wire.setResponseMessage("!!ERROR::FAILED_POP_FILE!!");
   }
   WireManager::setStagged(size);
 }
+
+void logFile() {
+  bool ok = file.logExternal(wire.getBuffer(), wire.bufferLength());
+  wire.setResponseMessage(ok ? "ok" : "!!ERROR::FAILED_TO_LOG_TO_FILE!!");
+}
+
+#endif
 /**
  * pong
  * 
@@ -69,36 +102,45 @@ void pop() {
  */
 void pong() {
   String send = "pong " + String(PROCESSOR_TYPE);
-  wire.setResponseMessage(send);
+  wire.setResponseMessage(send.c_str());
 }
 
-void logFile() {
-  bool ok = file.logExternal(wire.getBuffer(), wire.bufferLength());
-  wire.setResponseMessage(ok ? "ok" : "!!ERROR::FAILED_TO_LOG_TO_FILE!!");
-}
 
 /**
 * processesSID12CMD
 * runs the SDI-12 Command
 */
 void processesSID12CMD() {
-  // sdi.setup();
-  // delay(200);
-  WireManager::setStagged(sdi.cmd(wire.receiveCmd(), wire.getBuffer()));
-  // sdi.end();
+#ifndef NO_WEATHER
+  WireManager::setStagged(sdi.cmd(wire.getBuffer(), wire.bufferLength()));
+#endif
+#ifdef NO_WEATHER
+  wire.setResponseMessage("!!ERROR::FAILED_ALL_WEATHER!!");
+#endif
 }
 
 void process485() {
-//  int address = rs485.stripAddress(wire.receiveCmd());
-//  Serial.print("MY ADDRESS ");Serial.println(address);
-//  unsigned long size = rs485.process(address, wire.getBuffer());
-//  Serial.print("MY SIZE ");Serial.println(size);
-//  if (!size) {
-//     return wire.setResponseMessage("!!ERROR::FAILED_TO_PULL_RS485_DATA!!");
-//  }
-//  WireManager::setStagged(size);
+#ifndef NO_RS485  
+  clear();
+  Utils::postCommandBuffer(wire.getBuffer(), sentCommandsBuffer, wire.bufferLength(), SEND_BUFFER_SIZE);
+  int address = Utils::bufferToInt(sentCommandsBuffer);
+  unsigned long size = rs485.process(address, wire.getBuffer());
+  if (!size) {
+    return wire.setResponseMessage("!!ERROR::FAILED_RS485!!");
+  }
+  WireManager::setStagged(size);
+#endif
+#ifdef NO_RS485
+  wire.setResponseMessage("!!ERROR::FAILED_RS485!!");
+#endif
 }
 
+
+void clear() {
+  for (uint8_t i = 0; i < SEND_BUFFER_SIZE; i++) {
+    sentCommandsBuffer[i] = '\0';
+  }
+}
 
 /**
  * processSerialCommand - sends the command to the correct function for processing
@@ -107,32 +149,41 @@ void process485() {
  * @return void
  */
 void processCommand() {
-  String cmd = wire.peakCommand();
-  if (cmd.equals("")) {
+  uint8_t length = wire.peakCommand(sentCommandsBuffer, SEND_BUFFER_SIZE);
+  if (!length) {
     return;
   }
-  Serial.println(cmd);
-  if (cmd.startsWith("pop")) {
+  // Serial.print("Length ");
+  // Serial.print(length);
+  // Serial.print(" ");
+  Serial.println(String(sentCommandsBuffer));
+  // return;
+
+#ifndef NO_FILE_STORAGE
+  if (Utils::startsWith("pop", sentCommandsBuffer, length)) {
     pop();
-  } else if (cmd.startsWith("push")) {
+  } else if (Utils::startsWith("push", sentCommandsBuffer, length)) {
     pushOpperation();
-  } else if (cmd.startsWith("log")) {
+  } else if (Utils::startsWith("log", sentCommandsBuffer, length)) {
     logFile();
-  } else if (cmd.startsWith("rs485")) {
+  } else
+#endif
+
+  if (Utils::startsWith("rs485", sentCommandsBuffer, length)) {
     process485();
-  } else if (cmd.startsWith("request")) {
+  } else if (Utils::startsWith("request", sentCommandsBuffer, length)) {
     processesSID12CMD();
-  } else if (cmd.startsWith("0R")) {
-    processesSID12CMD();
-  } else if (cmd.startsWith("ping")) {
+  } else if (Utils::startsWith("ping", sentCommandsBuffer, length)) {
     pong();
-  } else if (cmd.startsWith("reset_wire")) {
+  } else if (Utils::startsWith("reset_wire", sentCommandsBuffer, length)) {
     wire.reset();
   } else {
-    Serial.print("Unknown Command ");
-    Serial.println(cmd);
+    Serial.println("!Unknown Command!");
   }
-  wire.clearCMD();
+
+  Serial.println("\n__________");
+  clear();
+  // wire.clearCMD();
 }
 
 /**
@@ -142,7 +193,10 @@ void processCommand() {
  */
 void loop() {
   processCommand();
+
+#ifndef NO_FILE_STORAGE
   file.loop();
+#endif
 
 #ifdef DEBUG
   // for debugging

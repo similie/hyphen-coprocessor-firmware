@@ -15,7 +15,7 @@ void SDI12Controller::setup() {
 }
 
 void SDI12Controller::init() {
-  // setup();
+  setup();
   if (PIN_LOW_REQURED && IS_CONNECTED_PIN) {
     pinMode(IS_CONNECTED_PIN, INPUT);
   }
@@ -74,30 +74,6 @@ unsigned long SDI12Controller::getSDIString(char* buffer) {
   return returnlength;
 }
 
-String SDI12Controller::stripNewLine(String cmd) {
-  if (!cmd.endsWith("\n")) {
-    return cmd;
-  }
-  return cmd.substring(0, cmd.length() - 1);
-}
-
-String SDI12Controller::parseSpaceCmd(String cmd) {
-  String send = "";
-  size_t length = cmd.length();
-  bool commandPart = false;
-  for (size_t i = 0; i < length; i++) {
-    char c = cmd.charAt(i);
-    if (c == ' ') {
-      commandPart = true;
-      continue;
-    } else if (!commandPart) {
-      continue;
-    }
-    send += String(c);
-  }
-  return send;
-}
-
 bool SDI12Controller::isConnected() {
   if (!PIN_LOW_REQURED) {
     return true;
@@ -105,22 +81,14 @@ bool SDI12Controller::isConnected() {
   return digitalRead(IS_CONNECTED_PIN) == LOW;
 }
 
-unsigned long SDI12Controller::cmd(String cmd, char* buffer) {
+unsigned long SDI12Controller::cmd(char* buffer, unsigned long length) {
   if (!isConnected()) {
     Serial.println("DEVICE DISCONNECTED");
-    return "";
+    return 0;
   }
-  Serial.println("FUCK YOU", cmd);
-  String thisCmd = stripNewLine(cmd);
-  Serial.print("SENDING COMMAND ");
-  Serial.println(thisCmd);
-  if (thisCmd.equals("")) {
-    return;
-  }
-
-  if (thisCmd.startsWith("request_")) {
-    thisCmd = parseSpaceCmd(thisCmd);
-  }
-  mySDI12.sendCommand(thisCmd);
+  char cmd[MAX_BUFFER_SIZE];
+  Utils::postCommandBuffer(buffer, cmd, length, MAX_BUFFER_SIZE);
+  Serial.print("SENDING THIS CMD ");Serial.println(String(cmd));
+  mySDI12.sendCommand(cmd);
   return getSDIString(buffer);
 }

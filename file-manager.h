@@ -24,7 +24,7 @@ private:
   unsigned long getPosition();
   unsigned long getLineCount(char*);
   void appendToBuffer(char*);
-  String getPopIndex(size_t);
+  // String getPopIndex(size_t);
   int getPopSize(String ourReading);
   bool writeToFile(const char*, char*, unsigned long);
 public:
