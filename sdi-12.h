@@ -5,6 +5,7 @@
 #include "utils.h"
 #define DATA_PIN 10
 #define EXPECTED_MIN_LENGTH 75
+#define EXPECTED_MIN_LENGTH_SOIL 15
 #define IS_CONNECTED_PIN 12
 #define PIN_LOW_REQURED true
 
@@ -15,8 +16,8 @@ private:
   SDI12 mySDI12;
   const uint8_t MAX_BUFFER_SIZE = 8;
   unsigned long returnlength = 0;
-  bool untilAvailable(unsigned long);
-  unsigned long getSDIString(char*);
+  int untilAvailable(unsigned long, uint8_t);
+  unsigned long getSDIString(char*, uint8_t);
   void reset();
 public:
   SDI12Controller();

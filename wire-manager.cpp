@@ -64,7 +64,7 @@ int WireManager::getEndIndex(int startIndex) {
 // }
 
 void WireManager::receiveEvent(int byteCount) {
-  // Serial.print("I JUST GOT RECEIVED ");Serial.println(byteCount);
+  Serial.print("I JUST GOT RECEIVED ");Serial.println(byteCount);
   if (bufferReady) {
     return;
   }
@@ -77,7 +77,7 @@ void WireManager::receiveEvent(int byteCount) {
     char c = Wire.read();
     cmdBuffer[cmdBufferIndex] = c;
     cmdBufferIndex++;
-    // Serial.print(c);
+    Serial.print(c);
     if (c == '\n' || c == '\0' || c == '\r') {
       bufferReady = true;
       // bufferReadySet = millis();
@@ -110,7 +110,7 @@ void WireManager::requestEvent() {
   }
   char printer[WIRE_BUFFER_SIZE + 1];
   buildPrinterValues(printer);
-  Serial.print("MY VALUES ARE HERE ");Serial.println(printer);
+  // Serial.print("MY VALUES ARE HERE ");Serial.println(printer);
   Wire.print(printer);
   Serial.println("\n----");
   Serial.print(String(printer));
@@ -132,6 +132,8 @@ void WireManager::end() {
 }
 
 void WireManager::setStagged(unsigned long staggedValue) {
+  bufferReady = false;
+  cmdBufferIndex = 0;
   _index = 0;
   staggedReady = staggedValue;
 }
@@ -191,11 +193,9 @@ void WireManager::setResponseMessage(String message) {
 }
 
 void WireManager::setResponseMessage(const char* message) {
-  clearCMD();
   WireManager::zeroOutBuffer(); 
   size_t length = strlen(message);
   bool append = message[length - 1] != '\n';
-  Serial.print("APPENDING ");Serial.println(append);
   uint16_t i = 0;
   for (i; i < length; i++) {
     char c = message[i];
@@ -206,17 +206,13 @@ void WireManager::setResponseMessage(const char* message) {
    i++;
   }
   cmdBuffer[i] = '\0';
-  Serial.print("WHYYYYY ");
-  Serial.print(length);
-  Serial.print(" ");
-  Serial.println(i);
   WireManager::setStagged(i);
 }
 
 void WireManager::clearCMD() {
   bufferReady = false;
   cmdBufferIndex = 0;
-  _index = 0;
+  // _index = 0;
   //WireManager::zeroOutBuffer();
 }
 

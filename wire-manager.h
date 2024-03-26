@@ -40,8 +40,6 @@ public:
   void end();
   static void setStagged(unsigned long);
   static void clearStagged();
-  // String receiveCmd();
-  // String peakCommand();
   uint8_t peakCommand(char* buffer,uint8_t);
   unsigned long bufferLength();
   char * getBuffer();

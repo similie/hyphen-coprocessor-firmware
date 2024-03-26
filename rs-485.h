@@ -8,7 +8,7 @@ class RS485Manager {
   private: 
    ModbusMaster node;
    const uint16_t START_REG = 0x0000;
-   const uint16_t END_REG = START_REG + 16; // 27;
+   const uint16_t END_REG = START_REG + 21; //+ 21; 
    unsigned long bufferCount = 0;
    void addStringToBuffer(uint16_t, char*);
    static const size_t bufferSize = 8;

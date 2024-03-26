@@ -60,9 +60,9 @@ unsigned long RS485Manager::process(int address, char* buffer) {
   while (node.available()) {
     uint16_t received = node.receive();
     index++;
-    if (!received) {
-      continue;
-    }
+    // if (!received) {
+    //   continue;
+    // }
     addStringToBuffer(received, buffer);
   }
   return bufferCount;

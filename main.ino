@@ -1,7 +1,6 @@
-// #define NO_RS485 true
+#define NO_RS485 true
 // #define NO_WEATHER true
-#define NO_FILE_STORAGE true
-
+// #define NO_FILE_STORAGE true
 #include "wire-manager.h"
 #ifndef NO_FILE_STORAGE
 #include "file-manager.h"
@@ -12,16 +11,12 @@
 #ifndef NO_RS485
 #include "rs-485.h"
 #endif
-
 #include "utils.h"
 
-// #define DEBUG true
-
-
-
+#define DEBUG true
 #define CONSOLE_BAUD 115200
-// #define PROCESSOR_TYPE "MO_SAMD_21G18"
-#define PROCESSOR_TYPE "FW_32u4"
+#define PROCESSOR_TYPE "MO_SAMD_21G18"
+// #define PROCESSOR_TYPE "FW_32u4"
 #define DEFAULT_SERIAL_RS845_PORT 9600
 #define INVALID_DEVICE 0
 
@@ -30,7 +25,7 @@ unsigned long awaitTimer = 0;
 const unsigned int LOG_OUT = 60000;
 #endif
 
-const uint8_t SEND_BUFFER_SIZE = 16;
+const uint8_t SEND_BUFFER_SIZE = 24;
 char sentCommandsBuffer[SEND_BUFFER_SIZE];
 
 WireManager wire;
@@ -125,6 +120,7 @@ void process485() {
   Utils::postCommandBuffer(wire.getBuffer(), sentCommandsBuffer, wire.bufferLength(), SEND_BUFFER_SIZE);
   int address = Utils::bufferToInt(sentCommandsBuffer);
   unsigned long size = rs485.process(address, wire.getBuffer());
+  Serial.print("THIS IS THE SIZE ");Serial.println(size);
   if (!size) {
     return wire.setResponseMessage("!!ERROR::FAILED_RS485!!");
   }
@@ -179,11 +175,12 @@ void processCommand() {
     wire.reset();
   } else {
     Serial.println("!Unknown Command!");
+    wire.setResponseMessage("!!ERROR::UNKNOWN_CMD!!");
   }
 
   Serial.println("\n__________");
   clear();
-  // wire.clearCMD();
+  wire.clearCMD();
 }
 
 /**

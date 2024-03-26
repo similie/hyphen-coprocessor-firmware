@@ -10,8 +10,8 @@ SDI12Controller::SDI12Controller(int pin) {
 
 
 void SDI12Controller::setup() {
-  mySDI12.begin();
   mySDI12.setDataPin(pin);
+  mySDI12.begin();
 }
 
 void SDI12Controller::init() {
@@ -34,32 +34,36 @@ void SDI12Controller::reset() {
   setup();
 }
 
-bool SDI12Controller::untilAvailable(unsigned long timeout) {
+int SDI12Controller::untilAvailable(unsigned long timeout, uint8_t checksize) {
   // return true;
-  bool available = false;
-  delay(100);
+  delay(150);
   unsigned long now = millis();
-  while (mySDI12.available() < EXPECTED_MIN_LENGTH && millis() - now < timeout) {
+  int available = 0;
+  while (available < checksize && millis() - now < timeout) {
+    available = mySDI12.available();
+    // Serial.print("WAITING ");
+    // Serial.println(available);
     delay(5);
   }
-  delay(50);
-  Serial.print("AVAILABLE ");
-  Serial.println(mySDI12.available());
-  if (mySDI12.available() == -1) {
+  available = mySDI12.available();
+  // Serial.print("AVAILABLE NOW ");
+  // Serial.println(available);
+  if (available == -1) {
     reset();
   }
-
-  available = mySDI12.available() > EXPECTED_MIN_LENGTH;
+  delay(50);
   return available;
 }
 
-unsigned long SDI12Controller::getSDIString(char* buffer) {
+unsigned long SDI12Controller::getSDIString(char* buffer, uint8_t checksize) {
   returnlength = 0;
-  if (!untilAvailable(1000)) {
+  int available = untilAvailable(1200, checksize);
+  if (available == -1) {
     Serial.println("CLEARING BUFFER FAILED TO GET SDI VALUES");
     mySDI12.clearBuffer();
     return returnlength;
   }
+  // Serial.print("I HAVE THIS AVAILABLE ");Serial.println(available);
   while (mySDI12.available()) {
     char c = mySDI12.read();
     Serial.print(c);
@@ -68,7 +72,8 @@ unsigned long SDI12Controller::getSDIString(char* buffer) {
   }
   buffer[returnlength] = '\0';
   mySDI12.clearBuffer();
-  if (returnlength < EXPECTED_MIN_LENGTH) {
+  // Serial.println("\nBUFFER RECEIVED ");Serial.println(returnlength);Serial.println(" ");Serial.println(buffer);
+  if (returnlength < checksize) {
     return 0;
   }
   return returnlength;
@@ -90,5 +95,6 @@ unsigned long SDI12Controller::cmd(char* buffer, unsigned long length) {
   Utils::postCommandBuffer(buffer, cmd, length, MAX_BUFFER_SIZE);
   Serial.print("SENDING THIS CMD ");Serial.println(String(cmd));
   mySDI12.sendCommand(cmd);
-  return getSDIString(buffer);
+  uint8_t checksize = String(cmd).startsWith("0") ? EXPECTED_MIN_LENGTH : EXPECTED_MIN_LENGTH_SOIL;
+  return getSDIString(buffer, checksize);
 }
