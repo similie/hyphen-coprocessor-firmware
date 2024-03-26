@@ -6,16 +6,15 @@
 #include "Arduino.h"
 #include <Wire.h>
 
-const uint16_t CMD_BUFFER_LENGTH = 412;
+const uint16_t CMD_BUFFER_LENGTH = 350;
 static char cmdBuffer[CMD_BUFFER_LENGTH];
 static uint16_t cmdBufferIndex = 0;
 static bool bufferReady = false;
 static unsigned long staggedReady = 0;
-static int index = 0;
+static int _index = 0;
 
 class WireManager {
 private:
-  static void (*user_onListen)(String);
   uint8_t address = DEFAULT_SLAVE_ID;
   static const uint8_t WIRE_BUFFER_SIZE = 31;
   static void requestEvent(void);
@@ -25,10 +24,15 @@ private:
   static int getTotalStringLength(int);
   static bool breakIndexCycle(int);
   static int getEndIndex(int);
+  
+  // static inline unsigned long bufferReadySet = 0;
+  // static inline size_t BUFFER_READY_FAILED = 10000;
+  // static bool readyBuffer();
   // not static
   void init();
   void printBuffer();
-  static String buildPrinterValues();
+  //  String buildPrinterValues();
+  static size_t buildPrinterValues(char*);
 public:
   WireManager();
   WireManager(uint8_t);
@@ -36,12 +40,12 @@ public:
   void end();
   static void setStagged(unsigned long);
   static void clearStagged();
-  String receiveCmd();
-  String peakCommand();
+  uint8_t peakCommand(char* buffer,uint8_t);
   unsigned long bufferLength();
   char * getBuffer();
   void clearCMD();
   void setResponseMessage(String);
+  void setResponseMessage(const char*);
   void reset();
   static void zeroOutBuffer();
 };

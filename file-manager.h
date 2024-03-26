@@ -24,7 +24,6 @@ private:
   unsigned long getPosition();
   unsigned long getLineCount(char*);
   void appendToBuffer(char*);
-  String getPopIndex(size_t);
   int getPopSize(String ourReading);
   bool writeToFile(const char*, char*, unsigned long);
 public:
@@ -32,8 +31,6 @@ public:
   void init();
   bool isConnected();
   void loop();
-  // 
-  bool log();
   bool logExternal(char * , unsigned long);
   bool push(char * , unsigned long);
   unsigned long pop(char *);
