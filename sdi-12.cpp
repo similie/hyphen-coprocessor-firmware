@@ -10,8 +10,61 @@ SDI12Controller::SDI12Controller(int pin) {
 
 
 void SDI12Controller::setup() {
-  mySDI12.setDataPin(pin);
+  mySDI12.setDataPin(this->pin);
   mySDI12.begin();
+  // delay(2000);
+  // Serial.println("GOT MY DELAY");
+  // validatePins();
+}
+/**
+ * @todo try to dynamically get the pin and the typical size
+ * 
+ */
+void SDI12Controller::parsePinResponse( uint8_t pin ) {
+  delay(100);
+  Serial.print("CHECKING PIN ");Serial.println(pin);
+  // String pins = "";
+  // we will try 5 times
+  for (uint8_t i = 0; i < 5; i++) {
+    uint8_t size = 0;
+    while(mySDI12.available()) {
+     char c = mySDI12.read();
+     Serial.print(c);
+     uint8_t value = String(c).toInt();
+     if (isnan(value) || value > 9) {
+      continue;
+     }
+     pins[value] = pin;
+     size++;
+    }
+
+    if (size > 0) {
+      break;
+    }
+
+    delay(200);
+  }
+}
+/**
+* @todo dynamically scan to validate the correct pins
+*/
+void SDI12Controller::validatePins() {
+  delay(10000);
+  Serial.println("Starting");
+  for (uint8_t i = 0; i < PIN_SIZE; i++) {
+    uint8_t pin = pinOptions[i];
+    mySDI12.setDataPin(pin);
+    mySDI12.sendCommand(checkAddress);
+    parsePinResponse(pin);
+  }
+}
+
+void SDI12Controller::setPin(int address) {
+  uint8_t pin = pins[address];
+  if (pin == 0 || isnan(pin)) {
+   return mySDI12.setDataPin(DATA_PIN);
+  }
+  mySDI12.setDataPin(pin);
 }
 
 void SDI12Controller::init() {
@@ -40,14 +93,13 @@ int SDI12Controller::untilAvailable(unsigned long timeout, uint8_t checksize) {
   unsigned long now = millis();
   int available = 0;
   while (available < checksize && millis() - now < timeout) {
-    available = mySDI12.available();
-    // Serial.print("WAITING ");
-    // Serial.println(available);
+    int thisRead = mySDI12.available();
+    if (thisRead != -1) {
+      available = thisRead;
+    }
     delay(5);
   }
-  available = mySDI12.available();
-  // Serial.print("AVAILABLE NOW ");
-  // Serial.println(available);
+  // available = mySDI12.available();
   if (available == -1) {
     reset();
   }
@@ -72,7 +124,6 @@ unsigned long SDI12Controller::getSDIString(char* buffer, uint8_t checksize) {
   }
   buffer[returnlength] = '\0';
   mySDI12.clearBuffer();
-  // Serial.println("\nBUFFER RECEIVED ");Serial.println(returnlength);Serial.println(" ");Serial.println(buffer);
   if (returnlength < checksize) {
     return 0;
   }
@@ -86,6 +137,27 @@ bool SDI12Controller::isConnected() {
   return digitalRead(IS_CONNECTED_PIN) == LOW;
 }
 
+uint8_t SDI12Controller::pinAddress(char*cmd) {
+ Serial.print("CHECKOUT OUT THIS COND "); Serial.println(cmd);
+ char pinBuffer[2];
+ pinBuffer[0] = cmd[0];
+ pinBuffer[1] = '\0';
+ uint8_t selectedPinAddress = (uint8_t)Utils::bufferToInt(pinBuffer);
+ if (isnan(selectedPinAddress)) {
+  return 0;
+ }
+ return selectedPinAddress;
+}
+
+void SDI12Controller::sendCommand(char*cmd, uint8_t selectedPinAddress) {
+  setPin(selectedPinAddress);
+  mySDI12.sendCommand(cmd);
+}
+
+uint8_t SDI12Controller::getCheckSize(uint8_t selectedPinAddress) {
+  return selectedPinAddress == 1 ? EXPECTED_MIN_LENGTH : EXPECTED_MIN_LENGTH_SOIL;
+}
+
 unsigned long SDI12Controller::cmd(char* buffer, unsigned long length) {
   if (!isConnected()) {
     Serial.println("DEVICE DISCONNECTED");
@@ -94,7 +166,7 @@ unsigned long SDI12Controller::cmd(char* buffer, unsigned long length) {
   char cmd[MAX_BUFFER_SIZE];
   Utils::postCommandBuffer(buffer, cmd, length, MAX_BUFFER_SIZE);
   Serial.print("SENDING THIS CMD ");Serial.println(String(cmd));
-  mySDI12.sendCommand(cmd);
-  uint8_t checksize = String(cmd).startsWith("0") ? EXPECTED_MIN_LENGTH : EXPECTED_MIN_LENGTH_SOIL;
-  return getSDIString(buffer, checksize);
+  uint8_t selectedPinAddress = pinAddress(cmd);
+  sendCommand(cmd, selectedPinAddress);
+  return getSDIString(buffer, getCheckSize(selectedPinAddress));
 }
