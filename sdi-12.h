@@ -9,6 +9,7 @@
 #define IS_CONNECTED_PIN 12
 #define PIN_LOW_REQURED true
 #define PIN_SIZE 3
+#define PIN_OPTIONS 10
 
 class SDI12Controller {
 private:
@@ -16,9 +17,8 @@ private:
   String checkAddress = "?!";
   String queryValue = "R0!";
   String statusCheck = "";
-  uint8_t pins[10];
-  uint16_t delays[10];
-  uint8_t lengths[10];
+  uint8_t pins[PIN_OPTIONS];
+  uint8_t lengths[PIN_OPTIONS];
   int pin = -1;
   SDI12 mySDI12;
   const uint8_t MAX_BUFFER_SIZE = 8;
@@ -32,6 +32,7 @@ private:
   uint8_t pinAddress(char*);
   void parsePinResponse(uint8_t);
   uint8_t getCheckSize(uint8_t);
+  bool invalidPin(uint8_t);
 public:
   SDI12Controller();
   SDI12Controller(int);

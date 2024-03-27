@@ -12,18 +12,15 @@ SDI12Controller::SDI12Controller(int pin) {
 void SDI12Controller::setup() {
   mySDI12.setDataPin(this->pin);
   mySDI12.begin();
-  // delay(2000);
-  // Serial.println("GOT MY DELAY");
+  // @todo
   // validatePins();
 }
 /**
  * @todo try to dynamically get the pin and the typical size
- * 
  */
 void SDI12Controller::parsePinResponse( uint8_t pin ) {
   delay(100);
   Serial.print("CHECKING PIN ");Serial.println(pin);
-  // String pins = "";
   // we will try 5 times
   for (uint8_t i = 0; i < 5; i++) {
     uint8_t size = 0;
@@ -37,12 +34,10 @@ void SDI12Controller::parsePinResponse( uint8_t pin ) {
      pins[value] = pin;
      size++;
     }
-
     if (size > 0) {
       break;
     }
-
-    delay(200);
+    delay(100);
   }
 }
 /**
@@ -59,9 +54,13 @@ void SDI12Controller::validatePins() {
   }
 }
 
+bool SDI12Controller::invalidPin(uint8_t value) {
+  return value == 0 || isnan(value);
+}
+
 void SDI12Controller::setPin(int address) {
   uint8_t pin = pins[address];
-  if (pin == 0 || isnan(pin)) {
+  if (invalidPin(pin)) {
    return mySDI12.setDataPin(DATA_PIN);
   }
   mySDI12.setDataPin(pin);
@@ -88,7 +87,6 @@ void SDI12Controller::reset() {
 }
 
 int SDI12Controller::untilAvailable(unsigned long timeout, uint8_t checksize) {
-  // return true;
   delay(150);
   unsigned long now = millis();
   int available = 0;
@@ -115,7 +113,6 @@ unsigned long SDI12Controller::getSDIString(char* buffer, uint8_t checksize) {
     mySDI12.clearBuffer();
     return returnlength;
   }
-  // Serial.print("I HAVE THIS AVAILABLE ");Serial.println(available);
   while (mySDI12.available()) {
     char c = mySDI12.read();
     Serial.print(c);
@@ -143,7 +140,7 @@ uint8_t SDI12Controller::pinAddress(char*cmd) {
  pinBuffer[0] = cmd[0];
  pinBuffer[1] = '\0';
  uint8_t selectedPinAddress = (uint8_t)Utils::bufferToInt(pinBuffer);
- if (isnan(selectedPinAddress)) {
+ if (isnan(selectedPinAddress) || selectedPinAddress > PIN_OPTIONS - 1) {
   return 0;
  }
  return selectedPinAddress;
@@ -155,7 +152,12 @@ void SDI12Controller::sendCommand(char*cmd, uint8_t selectedPinAddress) {
 }
 
 uint8_t SDI12Controller::getCheckSize(uint8_t selectedPinAddress) {
-  return selectedPinAddress == 1 ? EXPECTED_MIN_LENGTH : EXPECTED_MIN_LENGTH_SOIL;
+  uint8_t fallback = selectedPinAddress == 0 ? EXPECTED_MIN_LENGTH : EXPECTED_MIN_LENGTH_SOIL;
+  uint8_t length = lengths[selectedPinAddress];
+  if (invalidPin(length)) {
+    return fallback;
+  }
+  return length;
 }
 
 unsigned long SDI12Controller::cmd(char* buffer, unsigned long length) {
