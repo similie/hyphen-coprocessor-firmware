@@ -1,6 +1,6 @@
 #include "utils.h"
 
-unsigned int Utils::postCommandBuffer(char* from, char* to, unsigned int maxlength ,unsigned int maxSize) {
+unsigned int Utils::postCommandBuffer(char* from, char* to, unsigned int maxlength , unsigned int maxSize) {
     uint16_t index = 0;
     uint8_t toIndex = 0;
     bool start = false;
